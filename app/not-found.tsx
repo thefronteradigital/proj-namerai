@@ -1,7 +1,16 @@
-"use client";
-
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Home, ArrowLeft, Sparkles } from 'lucide-react';
+import { Home, Sparkles } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
+
+export const metadata: Metadata = {
+  title: "404 - Page Not Found",
+  description: "The page you're looking for doesn't exist. Return to Namer.ai to generate unique AI-powered brand names.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function NotFound() {
   return (
@@ -41,13 +50,7 @@ export default function NotFound() {
             <span>Go Home</span>
           </Link>
           
-          <button
-            onClick={() => window.history.back()}
-            className="group inline-flex items-center justify-center gap-2 px-8 h-14 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-lg border-2 border-slate-200 hover:border-slate-300 transition-all transform active:scale-[0.98]"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Go Back</span>
-          </button>
+          <BackButton />
         </div>
 
         {/* Helper Text */}

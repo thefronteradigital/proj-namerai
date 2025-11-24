@@ -17,8 +17,61 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Namer.ai - Project Name Generator",
-  description: "Create unique, multilingual brand names powered by AI — fast, memorable, and globally ready.",
+  metadataBase: new URL('https://namer.ai'),
+  title: {
+    default: "Namer.ai - AI-Powered Brand Name Generator",
+    template: "%s | Namer.ai"
+  },
+  description: "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks. 500 free queries per month.",
+  keywords: ["brand name generator", "AI name generator", "business name", "company name", "domain name", "brand naming", "multilingual names", "AI branding"],
+  authors: [{ name: "Frontera" }],
+  creator: "Frontera",
+  publisher: "Frontera",
+  applicationName: "Namer.ai",
+  generator: "Next.js",
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://namer.ai",
+    title: "Namer.ai - AI-Powered Brand Name Generator",
+    description: "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks.",
+    siteName: "Namer.ai",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Namer.ai - AI Brand Name Generator",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Namer.ai - AI-Powered Brand Name Generator",
+    description: "Create unique, multilingual brand names powered by AI with automated domain checks.",
+    images: ["/og-image.png"],
+    creator: "@frontera",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: "https://namer.ai",
+  },
 };
 
 export default function RootLayout({

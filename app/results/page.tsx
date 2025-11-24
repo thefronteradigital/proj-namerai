@@ -1,8 +1,18 @@
+import type { Metadata } from 'next';
 import type { FormState } from '@/features/name-generator/services/gemini-service';
 import { LANGUAGES, NAMING_STYLES, NAME_LENGTHS, type Language, type NamingStyle, type NameLength } from '@/features/name-generator/constants/form-options';
 import { Results } from '@/features/name-generator/components/results';
 import { generateNamesAction } from '@/features/name-generator/actions/generate-names';
 import { redirect } from 'next/navigation';
+
+export const metadata: Metadata = {
+  title: "Generated Brand Names - AI Results",
+  description: "View your AI-generated brand names with meanings, language origins, and domain availability status. Find the perfect name for your business.",
+  robots: {
+    index: false, // Don't index results pages
+    follow: true,
+  },
+};
 
 interface ResultsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

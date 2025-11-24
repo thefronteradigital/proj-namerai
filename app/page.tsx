@@ -1,5 +1,19 @@
+import type { Metadata } from 'next';
 import { Hero } from '@/components/hero';
 import { GeneratorForm } from '@/features/name-generator/components/generator-form';
+
+export const metadata: Metadata = {
+  title: "AI Brand Name Generator - Create Unique Business Names",
+  description: "Generate creative, multilingual brand names instantly with AI. Choose from techy, minimal, playful, or professional styles. Includes free domain availability checks.",
+  openGraph: {
+    title: "AI Brand Name Generator - Create Unique Business Names",
+    description: "Generate creative, multilingual brand names instantly with AI. Free domain availability checks included.",
+    url: "https://namer.ai",
+  },
+  alternates: {
+    canonical: "https://namer.ai",
+  },
+};
 
 export default function Home() {
   return (
