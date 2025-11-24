@@ -1,16 +1,6 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Home, Sparkles } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
-
-export const metadata: Metadata = {
-  title: "404 - Page Not Found",
-  description: "The page you're looking for doesn't exist. Return to Namer.ai to generate unique AI-powered brand names.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
 
 export default function NotFound() {
   return (
