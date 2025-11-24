@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { ResultsList } from './results-list';
+import { ResultsHeader } from './results-header';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
 import type { GeneratedName } from '@/features/name-generator/services/gemini-service';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ResultsProps {
   keywords: string;
@@ -35,26 +36,13 @@ export function Results({
   };
 
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto px-4 md:px-6 pt-12 pb-24">
-      {/* Header / Nav Back */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-        <button 
-          onClick={handleBack}
-          className="group flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors text-sm font-semibold uppercase tracking-wide"
-        >
-          <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </div>
-          Back to Generator
-        </button>
-        
-        <div className="text-right hidden md:block">
-          <span className="text-slate-400 text-sm">Searching for: </span>
-          <span className="font-semibold text-slate-800">
-            {keywords || style} · {length}
-          </span>
-        </div>
-      </div>
+    <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-24">
+      <ResultsHeader 
+        keywords={keywords}
+        style={style}
+        length={length}
+        onBack={handleBack}
+      />
 
       {/* Rate Limit Warning */}
       {rateLimitWarning && (
