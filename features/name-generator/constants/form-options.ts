@@ -7,23 +7,23 @@ export const LANGUAGES = {
   ENGLISH: 'English',
   MALAY: 'Bahasa Melayu',
   JAPANESE: 'Japanese',
-  MIX: 'Mix (Multilingual)',
+  MIX: 'Mix',
 };
 
 // Naming style options
 export const NAMING_STYLES = {
-  TECHY: 'Techy / Futuristic',
-  MINIMAL: 'Minimal / Clean',
-  PLAYFUL: 'Playful / Creative',
-  PROFESSIONAL: 'Professional / Corporate',
-  AI: 'AI / Machine Learning',
-  MYTHICAL: 'Mythical / Fantasy',
+  TECHY: 'Techy',
+  MINIMAL: 'Minimal',
+  PLAYFUL: 'Playful',
+  PROFESSIONAL: 'Professional',
+  AI: 'AI-Powered',
+  MYTHICAL: 'Mythical',
 };
 
 // Name length options
 export const NAME_LENGTHS = {
-  SHORT: 'Short (1 word)',
-  MEDIUM: 'Medium (2 words)',
-  LONG: 'Long (3+ words)',
+  SHORT: 'Short',
+  MEDIUM: 'Medium',
+  LONG: 'Long',
 };
 
