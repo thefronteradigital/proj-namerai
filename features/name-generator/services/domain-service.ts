@@ -89,8 +89,6 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
     const url = `https://domain-availability.whoisxmlapi.com/api/v1?apiKey=${apiKey}&domainName=${domain}`;
     const response = await fetch(url);
 
-    incrementDailyUsage();
-
     if (!response.ok) {
       const errorData: WhoisXMLAPIErrorResponse = await response
         .json()
