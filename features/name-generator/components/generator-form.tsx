@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FormInput } from "@/components/form-input";
-import type { FormState } from "@/lib/groq";
+import type { FormState } from "@/features/name-generator/services/name-generator";
 import {
   LANGUAGES,
   NAMING_STYLES,

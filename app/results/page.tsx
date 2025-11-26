@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import type { FormState } from '@/lib/groq';
+import type { FormState } from '@/features/name-generator/services/name-generator';
 import { LANGUAGES, NAMING_STYLES, NAME_LENGTHS, type Language, type NamingStyle, type NameLength } from '@/features/name-generator/constants/form-options';
 import { Results } from '@/features/name-generator/components/results';
 import { generateNamesAction } from '@/features/name-generator/actions/generate-names';
