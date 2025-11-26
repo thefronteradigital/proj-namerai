@@ -1,15 +1,19 @@
 /**
  * Domain Availability Checker Service
- * Using WhoisXMLAPI with security best practices and rate limiting
+ * Uses RDAP (Registration Data Access Protocol) - free, unlimited, no API key required
  *
  * Security Features:
- * - Rate limiting (per-request and per-batch)
  * - Request timeout protection
- * - API key validation
  * - Input validation and sanitization
+ * - Batch size limits to prevent abuse
+ * - Rate limiting with exponential backoff
  * - Error handling without exposing sensitive data
  */
 
+import {
+  checkDomain as rdapCheckDomain,
+  type DomainCheckResult as RdapCheckResult,
+} from "@/lib/rdap";
 import {
   createSlidingWindowLimiter,
   formatRateLimitError,
@@ -42,31 +46,19 @@ export interface DomainCheckError {
   message: string;
 }
 
-interface WhoisXMLAPIResponse {
-  DomainInfo: {
-    domainAvailability: "AVAILABLE" | "UNAVAILABLE";
-    domainName: string;
-  };
-}
-
-interface WhoisXMLAPIErrorResponse {
-  messages?: string;
-  code?: number;
-}
-
 // Security & Configuration
 const CONFIG = {
-  // Request timeout (30 seconds)
-  REQUEST_TIMEOUT: 30000,
-  // Delay between requests to avoid overwhelming the API
-  REQUEST_DELAY_MS: 500,
+  // Request timeout (10 seconds for RDAP, faster than external APIs)
+  REQUEST_TIMEOUT: 10000,
+  // Delay between requests to avoid overwhelming RDAP servers
+  REQUEST_DELAY_MS: 300,
   // Maximum domains per batch to prevent abuse
   MAX_DOMAINS_PER_BATCH: 10,
-  // API base URL
-  API_BASE_URL: "https://domain-availability.whoisxmlapi.com/api/v1",
+  // API base URL (RDAP is distributed)
+  API_TYPE: "RDAP - Registration Data Access Protocol (Free, No API Key)",
 };
 
-// Rate limiter: 60 requests per minute
+// Rate limiter: 60 requests per minute (generous for RDAP)
 const rateLimiter = createSlidingWindowLimiter("domain-checker", {
   maxRequests: 60,
   windowMs: 60 * 1000,
@@ -78,6 +70,8 @@ let lastError: DomainCheckError | null = null;
 
 /**
  * Validate and sanitize domain name
+ * @param domain - Domain name to validate
+ * @returns True if domain format is valid
  */
 function validateDomain(domain: string): boolean {
   // Domain regex: allows alphanumeric, hyphens, and dots
@@ -95,20 +89,6 @@ function recordRequest(): void {
   if (result.allowed) {
     requestCount++;
   }
-}
-
-/**
- * Get API key from environment with validation
- */
-function getApiKey(): string | undefined {
-  const apiKey = process.env.WHOISXML_API_KEY;
-
-  // Validate API key format (should be a non-empty string)
-  if (apiKey && typeof apiKey === "string" && apiKey.length > 0) {
-    return apiKey;
-  }
-
-  return undefined;
 }
 
 /**
@@ -134,41 +114,33 @@ export function isRateLimitReached(): boolean {
 }
 
 /**
- * Fetch with timeout protection
- */
-async function fetchWithTimeout(
-  url: string,
-  timeout: number = CONFIG.REQUEST_TIMEOUT
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Namer-AI/1.0",
-      },
-    });
-    return response;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
  * Reset counter (for testing)
  */
 export function resetCounter(): void {
   requestCount = 0;
   lastError = null;
+  rateLimiter.reset();
 }
 
 /**
- * Check single domain with WhoisXML API
- * Includes security checks and rate limiting
+ * Convert RDAP result to domain result format
  */
-async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
+function convertRdapResult(rdapResult: RdapCheckResult): DomainResult {
+  return {
+    url: rdapResult.domain,
+    status: rdapResult.status as DomainStatus,
+  };
+}
+
+/**
+ * Check single domain with RDAP
+ * No API key required - uses public RDAP endpoints
+ *
+ * @param domain - Domain name to check
+ * @returns Domain availability result
+ * @throws Error if validation fails or rate limit exceeded
+ */
+async function checkWithRDAP(domain: string): Promise<DomainResult> {
   // 1. Validate domain format
   if (!validateDomain(domain)) {
     lastError = {
@@ -189,70 +161,15 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
     throw new Error(lastError.message);
   }
 
-  // 3. Get and validate API key
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    lastError = {
-      type: "api_error",
-      message:
-        "API key not configured. Please set WHOISXML_API_KEY in your .env file.",
-    };
-    throw new Error(lastError.message);
-  }
-
   try {
-    // 4. Build secure URL using URLSearchParams (prevents injection)
-    const params = new URLSearchParams({
-      apiKey,
-      domainName: domain,
-    });
-    const url = `${CONFIG.API_BASE_URL}?${params.toString()}`;
+    // 3. Query RDAP endpoint
+    const rdapResult = await rdapCheckDomain(domain);
 
-    // 5. Make request with timeout protection
-    const response = await fetchWithTimeout(url);
-
-    // 6. Record successful request for rate limiting
+    // 4. Record request for rate limiting
     recordRequest();
 
-    if (!response.ok) {
-      const errorData: WhoisXMLAPIErrorResponse = await response
-        .json()
-        .catch(() => ({}));
-
-      // Rate limit error
-      if (response.status === 429 || errorData.messages?.includes("limit")) {
-        lastError = {
-          type: "rate_limit",
-          message: `API rate limit reached. Please try again later.`,
-        };
-        throw new Error(lastError.message);
-      }
-
-      // Invalid API key
-      if (response.status === 401 || response.status === 403) {
-        lastError = {
-          type: "api_error",
-          message: "Invalid WhoisXML API key. Please check your credentials.",
-        };
-        throw new Error(lastError.message);
-      }
-
-      lastError = {
-        type: "api_error",
-        message: `WhoisXML API error: ${response.status} - ${
-          errorData.messages || "Unknown error"
-        }`,
-      };
-      throw new Error(lastError.message);
-    }
-
-    const data: WhoisXMLAPIResponse = await response.json();
-    const isAvailable = data.DomainInfo.domainAvailability === "AVAILABLE";
-
-    return {
-      url: domain,
-      status: isAvailable ? "Available" : "Taken",
-    };
+    // 5. Convert and return result
+    return convertRdapResult(rdapResult);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
 
@@ -261,7 +178,7 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
       throw err;
     }
 
-    console.error("WhoisXML check failed:", err);
+    console.error("RDAP check failed:", err);
 
     // Network error
     if (err.name === "TypeError" || err.message?.includes("fetch")) {
@@ -283,13 +200,16 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
 
 /**
  * Check single domain availability
+ *
+ * @param domain - Domain name to check
+ * @returns Domain availability result with error handling
  */
 export async function checkDomain(domain: string): Promise<DomainResult> {
   const cleanDomain = domain.toLowerCase().trim();
 
   try {
     console.log(`Checking domain: ${cleanDomain}`);
-    const result = await checkWithWhoisXML(cleanDomain);
+    const result = await checkWithRDAP(cleanDomain);
     console.log(`✓ Domain ${cleanDomain} is ${result.status}`);
     return result;
   } catch (error) {
@@ -309,6 +229,9 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
  * - Limits batch size to prevent abuse
  * - Implements request delays between API calls
  * - Handles rate limiting gracefully
+ *
+ * @param domains - Array of domain names to check
+ * @returns Array of domain availability results
  */
 export async function checkDomains(domains: string[]): Promise<DomainResult[]> {
   const results: DomainResult[] = [];
@@ -346,7 +269,7 @@ export async function checkDomains(domains: string[]): Promise<DomainResult[]> {
       const result = await checkDomain(domainsToCheck[i]);
       results.push(result);
 
-      // 3. Request delay: wait between requests to avoid overwhelming the API
+      // 3. Request delay: wait between requests to avoid overwhelming RDAP servers
       if (i < domainsToCheck.length - 1) {
         await waitForNextRequest(CONFIG.REQUEST_DELAY_MS);
       }
@@ -368,3 +291,4 @@ export const domainService = {
   isRateLimitReached,
   resetCounter,
 };
+

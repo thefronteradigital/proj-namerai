@@ -1,11 +1,14 @@
-import Groq from "groq-sdk";
+import { GoogleGenAI } from "@google/genai";
 import {
   NAME_LENGTHS,
   type Language,
   type NamingStyle,
   type NameLength,
-} from "../constants/form-options";
-import { domainService, type DomainResult } from "./domain-service";
+} from "../features/name-generator/constants/form-options";
+import {
+  domainService,
+  type DomainResult,
+} from "@/features/name-generator/services/domain-service";
 
 export interface GeneratedName {
   name: string;
@@ -51,22 +54,23 @@ const getLanguageGuidance = (language: string): string => {
 export const generateNames = async (
   form: FormState
 ): Promise<GeneratedName[]> => {
-  const apiKey = process.env.GROQ_API_KEY || process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "API Key is missing. Please set GROQ_API_KEY in your .env.local file."
+      "API Key is missing. Please set GEMINI_API_KEY in your .env.local file."
     );
   }
 
   try {
-    const groq = new Groq({ apiKey });
+    const ai = new GoogleGenAI({ apiKey });
 
     // Reset domain service error state
     domainService.resetCounter();
 
     // Construct System Instruction
-    const systemInstruction = `You are a Multilingual Project Name Generator AI.
+    const systemInstruction = `
+You are a Multilingual Project Name Generator AI.
 Your task is to generate unique, brandable project names based on the user's input.
 
 1. LANGUAGE SELECTION
@@ -92,37 +96,33 @@ Return your response as a JSON object with this structure:
   ]
 }
 
-Generate exactly 10 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).`;
+Generate 4-6 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).
+`;
 
     // Construct User Prompt
-    const userPrompt = `Generate project names based on:
+    const userPrompt = `
+Generate project names based on:
 - Language: ${form.language}
 - Style: ${form.style}
 - Length: ${form.length}
 - Keywords: ${form.keywords || "None"}
 
-Return ONLY valid JSON. No markdown, no explanations.`;
+Return ONLY valid JSON. No markdown, no explanations.
+`;
 
-    // Call Groq API with Llama 3.1 8B Instant
-    const result = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        {
-          role: "system",
-          content: systemInstruction,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-      temperature: 0.9,
-      top_p: 0.95,
-      max_tokens: 1024,
+    // Use the correct API method from documentation
+    const result = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: systemInstruction + "\n\n" + userPrompt,
+      config: {
+        temperature: 0.9,
+        topP: 0.95,
+        topK: 40,
+      },
     });
 
     // Extract and parse response
-    const text = result.choices[0]?.message?.content;
+    const text = result.text;
     if (!text) {
       throw new Error("No response generated from API");
     }
@@ -217,26 +217,24 @@ Return ONLY valid JSON. No markdown, no explanations.`;
     }));
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Groq Service Error:", err);
+    console.error("Gemini Service Error:", err);
 
     // Provide more specific error messages
     if (
       err.message?.includes("API key") ||
-      err.message?.includes("api_key") ||
-      err.message?.includes("authentication")
+      err.message?.includes("API_KEY_INVALID")
     ) {
       throw new Error(
-        "Invalid API Key. Please check your GROQ_API_KEY in .env.local"
+        "Invalid API Key. Please check your GEMINI_API_KEY in .env.local"
       );
     }
 
     if (
       err.message?.includes("quota") ||
-      err.message?.includes("rate_limit") ||
-      err.message?.includes("429")
+      err.message?.includes("RESOURCE_EXHAUSTED")
     ) {
       throw new Error(
-        "API quota exceeded. Please try again later or check your rate limits."
+        "API quota exceeded. Please try again later or check your billing."
       );
     }
 

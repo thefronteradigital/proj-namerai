@@ -1,7 +1,7 @@
 'use server';
 
-import { generateNames, type FormState, type GeneratedName } from '../services/groq-service';
-import { domainService } from '../services/domain-service';
+import { generateNames, type FormState, type GeneratedName } from '@/lib/groq';
+import { domainService } from '@/features/name-generator/services/domain-service';
 
 interface GenerateNamesResult {
   results: GeneratedName[];

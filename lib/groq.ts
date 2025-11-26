@@ -1,6 +1,14 @@
-import { GoogleGenAI } from '@google/genai';
-import { NAME_LENGTHS, type Language, type NamingStyle, type NameLength } from '../constants/form-options';
-import { domainService, type DomainResult } from './domain-service';
+import Groq from "groq-sdk";
+import {
+  NAME_LENGTHS,
+  type Language,
+  type NamingStyle,
+  type NameLength,
+} from "../features/name-generator/constants/form-options";
+import {
+  domainService,
+  type DomainResult,
+} from "@/features/name-generator/services/domain-service";
 
 export interface GeneratedName {
   name: string;
@@ -37,28 +45,31 @@ const getLengthGuidance = (length: NameLength): string => {
  * Get language guidance based on selected language
  */
 const getLanguageGuidance = (language: string): string => {
-  if (language === 'Mix (Multilingual)') {
+  if (language === "Mix (Multilingual)") {
     return "Mix multiple languages creatively. Blend word roots from English, Malay, Japanese, and other languages. Create fusion names that sound international and unique.";
   }
   return `Use authentic word roots, phonetics, or shortened forms from ${language}.`;
 };
 
-export const generateNames = async (form: FormState): Promise<GeneratedName[]> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  
+export const generateNames = async (
+  form: FormState
+): Promise<GeneratedName[]> => {
+  const apiKey = process.env.GROQ_API_KEY || process.env.API_KEY;
+
   if (!apiKey) {
-    throw new Error("API Key is missing. Please set GEMINI_API_KEY in your .env.local file.");
+    throw new Error(
+      "API Key is missing. Please set GROQ_API_KEY in your .env.local file."
+    );
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const groq = new Groq({ apiKey });
 
     // Reset domain service error state
     domainService.resetCounter();
 
     // Construct System Instruction
-    const systemInstruction = `
-You are a Multilingual Project Name Generator AI.
+    const systemInstruction = `You are a Multilingual Project Name Generator AI.
 Your task is to generate unique, brandable project names based on the user's input.
 
 1. LANGUAGE SELECTION
@@ -84,47 +95,53 @@ Return your response as a JSON object with this structure:
   ]
 }
 
-Generate 4-6 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).
-`;
+Generate exactly 10 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).`;
 
     // Construct User Prompt
-    const userPrompt = `
-Generate project names based on:
+    const userPrompt = `Generate project names based on:
 - Language: ${form.language}
 - Style: ${form.style}
 - Length: ${form.length}
 - Keywords: ${form.keywords || "None"}
 
-Return ONLY valid JSON. No markdown, no explanations.
-`;
+Return ONLY valid JSON. No markdown, no explanations.`;
 
-    // Use the correct API method from documentation
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
-      contents: systemInstruction + "\n\n" + userPrompt,
-      config: {
-        temperature: 0.9,
-        topP: 0.95,
-        topK: 40,
-      }
+    // Call Groq API with Llama 3.1 8B Instant
+    const result = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: systemInstruction,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+      temperature: 0.9,
+      top_p: 0.95,
+      max_tokens: 1024,
     });
 
     // Extract and parse response
-    const text = result.text;
+    const text = result.choices[0]?.message?.content;
     if (!text) {
       throw new Error("No response generated from API");
     }
-    
+
     // Clean up response (remove markdown if present)
     let cleanedText = text.trim();
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/```\n?/g, '');
+    if (cleanedText.startsWith("```json")) {
+      cleanedText = cleanedText
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "");
+    } else if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.replace(/```\n?/g, "");
     }
-    
+
     const parsed = JSON.parse(cleanedText);
-    
+
     if (!parsed.names || !Array.isArray(parsed.names)) {
       throw new Error("Invalid response format from API");
     }
@@ -133,53 +150,63 @@ Return ONLY valid JSON. No markdown, no explanations.
 
     // Process domain checking if enabled
     if (form.checkDomains) {
-      console.log('🔍 Starting domain availability checks...');
-      
+      console.log("🔍 Starting domain availability checks...");
+
       const namesWithDomains: GeneratedName[] = [];
 
       for (const nameItem of parsed.names) {
         const suggestedDomains = nameItem.suggestedDomains || [];
-        
+
         if (suggestedDomains.length > 0) {
           try {
             console.log(`Checking domains for "${nameItem.name}"...`);
-            const domainResults = await domainService.checkDomains(suggestedDomains);
-            
+            const domainResults = await domainService.checkDomains(
+              suggestedDomains
+            );
+
             namesWithDomains.push({
               ...nameItem,
-              domains: domainResults
+              domains: domainResults,
             });
 
             // Check if rate limit reached
             if (domainService.isRateLimitReached()) {
-              console.warn('⚠ Rate limit reached. Stopping domain checks.');
+              console.warn("⚠ Rate limit reached. Stopping domain checks.");
               // Add remaining names without domain checks
-              const remainingNames = parsed.names.slice(namesWithDomains.length);
-              namesWithDomains.push(...remainingNames.map((n: GeneratedName) => ({
-                ...n,
-                domains: []
-              })));
+              const remainingNames = parsed.names.slice(
+                namesWithDomains.length
+              );
+              namesWithDomains.push(
+                ...remainingNames.map((n: GeneratedName) => ({
+                  ...n,
+                  domains: [],
+                }))
+              );
               break;
             }
           } catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
+            const err =
+              error instanceof Error ? error : new Error(String(error));
             console.error(`Domain check failed for ${nameItem.name}:`, err);
             namesWithDomains.push({
               ...nameItem,
-              domains: suggestedDomains.map((d: string) => ({ url: d, status: 'Error' as const }))
+              domains: suggestedDomains.map((d: string) => ({
+                url: d,
+                status: "Error" as const,
+              })),
             });
           }
         } else {
           namesWithDomains.push({
             ...nameItem,
-            domains: []
+            domains: [],
           });
         }
       }
 
       // Show rate limit warning if reached
       const lastError = domainService.getLastError();
-      if (lastError?.type === 'rate_limit') {
+      if (lastError?.type === "rate_limit") {
         console.warn(`⚠ ${lastError.message}`);
       }
 
@@ -189,30 +216,43 @@ Return ONLY valid JSON. No markdown, no explanations.
     // Return without domain checking
     return parsed.names.map((n: GeneratedName) => ({
       ...n,
-      domains: []
+      domains: [],
     }));
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Gemini Service Error:", err);
-    
+    console.error("Groq Service Error:", err);
+
     // Provide more specific error messages
-    if (err.message?.includes('API key') || err.message?.includes('API_KEY_INVALID')) {
-      throw new Error("Invalid API Key. Please check your GEMINI_API_KEY in .env.local");
+    if (
+      err.message?.includes("API key") ||
+      err.message?.includes("api_key") ||
+      err.message?.includes("authentication")
+    ) {
+      throw new Error(
+        "Invalid API Key. Please check your GROQ_API_KEY in .env.local"
+      );
     }
-    
-    if (err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
-      throw new Error("API quota exceeded. Please try again later or check your billing.");
+
+    if (
+      err.message?.includes("quota") ||
+      err.message?.includes("rate_limit") ||
+      err.message?.includes("429")
+    ) {
+      throw new Error(
+        "API quota exceeded. Please try again later or check your rate limits."
+      );
     }
-    
-    if (err.message?.includes('network') || err.message?.includes('fetch')) {
+
+    if (err.message?.includes("network") || err.message?.includes("fetch")) {
       throw new Error("Network error. Please check your internet connection.");
     }
 
-    if (err.message?.includes('JSON')) {
+    if (err.message?.includes("JSON")) {
       throw new Error("Failed to parse AI response. Please try again.");
     }
-    
-    throw new Error(err.message || "Failed to generate names. Please try again.");
+
+    throw new Error(
+      err.message || "Failed to generate names. Please try again."
+    );
   }
 };
