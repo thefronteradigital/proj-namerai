@@ -16,20 +16,39 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://namerai.frontera.my.id";
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://namer.ai'),
+  metadataBase: new URL(APP_URL),
   title: {
     default: "Namer.ai - AI-Powered Brand Name Generator",
-    template: "%s | Namer.ai"
+    template: "%s | Namer.ai",
   },
-  description: "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks. 500 free queries per month.",
-  keywords: ["brand name generator", "AI name generator", "business name", "company name", "domain name", "brand naming", "multilingual names", "AI branding"],
-  authors: [{ name: "Frontera" }],
+  description:
+    "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks. 500 free queries per month.",
+  keywords: [
+    "brand name generator",
+    "AI name generator",
+    "business name generator",
+    "company name generator",
+    "domain name checker",
+    "brand naming tool",
+    "multilingual names",
+    "AI branding",
+    "startup name generator",
+    "creative business names",
+    "name generator free",
+    "business name ideas",
+  ],
+  authors: [{ name: "Frontera", url: "https://namer.ai" }],
   creator: "Frontera",
   publisher: "Frontera",
   applicationName: "Namer.ai",
   generator: "Next.js",
   referrer: "origin-when-cross-origin",
+  category: "Business Tools",
+  classification: "AI-Powered Business Name Generator",
   formatDetection: {
     email: false,
     address: false,
@@ -38,9 +57,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://namer.ai",
+    url: APP_URL,
     title: "Namer.ai - AI-Powered Brand Name Generator",
-    description: "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks.",
+    description:
+      "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks.",
     siteName: "Namer.ai",
     images: [
       {
@@ -48,29 +68,48 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: "Namer.ai - AI Brand Name Generator",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Namer.ai - AI-Powered Brand Name Generator",
-    description: "Create unique, multilingual brand names powered by AI with automated domain checks.",
+    description:
+      "Create unique, multilingual brand names powered by AI with automated domain checks.",
     images: ["/og-image.png"],
-    creator: "@frontera",
+    creator: process.env.NEXT_PUBLIC_TWITTER_CREATOR || "@frontera",
+    site: process.env.NEXT_PUBLIC_TWITTER_HANDLE || "@namer_ai",
   },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      noimageindex: false,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   alternates: {
-    canonical: "https://namer.ai",
+    canonical: APP_URL,
+    types: {
+      "application/rss+xml": `${APP_URL}/rss.xml`,
+    },
+  },
+  // Verification tags for search engines (add actual codes in .env)
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+  },
+  other: {
+    "revisit-after": "7 days",
+    rating: "General",
+    distribution: "Global",
+    language: "EN",
   },
 };
 

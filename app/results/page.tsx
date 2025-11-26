@@ -9,8 +9,13 @@ export const metadata: Metadata = {
   title: "Generated Brand Names - AI Results",
   description: "View your AI-generated brand names with meanings, language origins, and domain availability status. Find the perfect name for your business.",
   robots: {
-    index: false, // Don't index results pages
+    index: false, // Don't index results pages (dynamic/user-specific content)
     follow: true,
+    nocache: true,
+  },
+  openGraph: {
+    title: "Generated Brand Names - AI Results",
+    description: "View your AI-generated brand names with meanings and domain availability.",
   },
 };
 
