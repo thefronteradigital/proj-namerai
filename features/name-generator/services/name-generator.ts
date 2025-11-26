@@ -98,12 +98,17 @@ Return your response as a JSON object with this structure:
       "name": "ProjectName",
       "meaning": "Brief explanation of the name's meaning and origin",
       "languageOrigin": "Language(s) used",
-      "suggestedDomains": ["projectname.com", "projectname.io", "projectname.ai"]
+      "suggestedDomains": ["projectname.com", "projectname.my", "projectname.ai"]
     }
   ]
 }
 
-Generate exactly 10 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).`;
+Generate exactly 10 high-quality names. For each name, you MUST suggest exactly these 3 domain extensions in this order:
+1. .com (international)
+2. .my (Malaysia)
+3. .ai (AI/tech focus)
+
+Always provide all 3 domains for every name.`;
 }
 
 /**
@@ -143,12 +148,15 @@ export async function generateNamesWithGemini(
 
     console.log(`✅ Successfully generated ${parsed.names.length} names`);
 
+    // Ensure all names have required domain extensions
+    const namesWithRequiredDomains = ensureRequiredDomains(parsed.names);
+
     // Process domain checking if enabled
     if (form.checkDomains) {
-      return await processDomainChecks(parsed.names);
+      return await processDomainChecks(namesWithRequiredDomains);
     }
 
-    return parsed.names.map((n: GeneratedName) => ({
+    return namesWithRequiredDomains.map((n: GeneratedName) => ({
       ...n,
       domains: [],
     }));
@@ -183,12 +191,15 @@ export async function generateNamesWithGroq(
 
     console.log(`✅ Successfully generated ${parsed.names.length} names`);
 
+    // Ensure all names have required domain extensions
+    const namesWithRequiredDomains = ensureRequiredDomains(parsed.names);
+
     // Process domain checking if enabled
     if (form.checkDomains) {
-      return await processDomainChecks(parsed.names);
+      return await processDomainChecks(namesWithRequiredDomains);
     }
 
-    return parsed.names.map((n: GeneratedName) => ({
+    return namesWithRequiredDomains.map((n: GeneratedName) => ({
       ...n,
       domains: [],
     }));
@@ -200,6 +211,40 @@ export async function generateNamesWithGroq(
 }
 
 /**
+ * Ensure all names have .com, .my, and .ai domain suggestions
+ * Fallback to generating them from the name if AI didn't provide them
+ */
+function ensureRequiredDomains(names: GeneratedName[]): GeneratedName[] {
+  const requiredExtensions = ['.com', '.my', '.ai'];
+  
+  return names.map((nameItem) => {
+    const suggestedDomains = nameItem.suggestedDomains || [];
+    const nameLower = nameItem.name.toLowerCase().replace(/\s+/g, '');
+    
+    // Check which required extensions are missing
+    const missingExtensions = requiredExtensions.filter(
+      ext => !suggestedDomains.some(domain => domain.endsWith(ext))
+    );
+    
+    // Add missing domains
+    const additionalDomains = missingExtensions.map(ext => `${nameLower}${ext}`);
+    const allDomains = [...suggestedDomains, ...additionalDomains];
+    
+    // Ensure we have exactly .com, .my, and .ai in the correct order
+    const orderedDomains = [
+      allDomains.find(d => d.endsWith('.com')) || `${nameLower}.com`,
+      allDomains.find(d => d.endsWith('.my')) || `${nameLower}.my`,
+      allDomains.find(d => d.endsWith('.ai')) || `${nameLower}.ai`,
+    ];
+    
+    return {
+      ...nameItem,
+      suggestedDomains: orderedDomains,
+    };
+  });
+}
+
+/**
  * Process domain checks for generated names
  */
 async function processDomainChecks(
@@ -207,9 +252,12 @@ async function processDomainChecks(
 ): Promise<GeneratedName[]> {
   console.log("🔍 Starting domain availability checks...");
 
+  // Ensure all names have the required domain extensions
+  const namesWithRequiredDomains = ensureRequiredDomains(names);
+
   const namesWithDomains: GeneratedName[] = [];
 
-  for (const nameItem of names) {
+  for (const nameItem of namesWithRequiredDomains) {
     const suggestedDomains = nameItem.suggestedDomains || [];
 
     if (suggestedDomains.length > 0) {
@@ -228,7 +276,7 @@ async function processDomainChecks(
         if (domainService.isRateLimitReached()) {
           console.warn("⚠ Rate limit reached. Stopping domain checks.");
           // Add remaining names without domain checks
-          const remainingNames = names.slice(namesWithDomains.length);
+          const remainingNames = namesWithRequiredDomains.slice(namesWithDomains.length);
           namesWithDomains.push(
             ...remainingNames.map((n: GeneratedName) => ({
               ...n,

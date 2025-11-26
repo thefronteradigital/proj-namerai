@@ -108,7 +108,7 @@ export function ParticlesBackground() {
 
   if (!init) {
     return (
-      <div className="fixed inset-0 -z-10 pointer-events-none">
+      <div className="fixed inset-0 -z-50 pointer-events-none">
         <div className="text-xs text-slate-400 p-4">Loading particles...</div>
       </div>
     );
@@ -119,15 +119,7 @@ export function ParticlesBackground() {
       id="tsparticles"
       particlesLoaded={particlesLoaded}
       options={options}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: -1,
-        pointerEvents: 'none',
-      }}
+      className="fixed inset-0 -z-50 pointer-events-none"
     />
   );
 }
