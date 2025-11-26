@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { GeneratedName } from '@/features/name-generator/services/gemini-service';
+import type { GeneratedName } from '@/features/name-generator/services/groq-service';
 import { Check, X, DollarSign, Globe, AlertCircle, Copy, CheckCheck } from 'lucide-react';
 
 interface ResultsListProps {

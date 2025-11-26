@@ -5,7 +5,7 @@ export function Hero() {
         Brand Name Generator
       </h1>
       <p className="text-slate-600 text-base md:text-lg max-w-xl leading-relaxed">
-        Create unique, multilingual brand names powered by AI with domain availability checks • 500 free queries/month
+        Create unique, multilingual brand names powered by AI with domain availability checks • 200 free domain checks/day
       </p>
     </div>
   );

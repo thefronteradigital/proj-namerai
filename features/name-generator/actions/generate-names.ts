@@ -1,6 +1,6 @@
 'use server';
 
-import { generateNames, type FormState, type GeneratedName } from '../services/gemini-service';
+import { generateNames, type FormState, type GeneratedName } from '../services/groq-service';
 import { domainService } from '../services/domain-service';
 
 interface GenerateNamesResult {
@@ -24,11 +24,6 @@ export async function generateNamesAction(
       const lastError = domainService.getLastError();
       if (lastError?.type === 'rate_limit') {
         rateLimitWarning = lastError.message;
-      }
-
-      const requestCount = domainService.getRequestCount();
-      if (requestCount >= 80 && requestCount < 100) {
-        rateLimitWarning = `You've used ${requestCount} out of 100 monthly domain checks. ${100 - requestCount} remaining.`;
       }
     }
   } catch (err) {

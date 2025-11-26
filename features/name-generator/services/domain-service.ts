@@ -1,12 +1,12 @@
 /**
  * Domain Availability Checker Service
  * Using WhoisXMLAPI (100 free queries/month)
- * 
+ *
  * Simple, functional approach - no classes
  */
 
-type DomainStatus = 'Available' | 'Taken' | 'Premium' | 'Error';
-type DomainCheckErrorType = 'rate_limit' | 'api_error' | 'network_error';
+type DomainStatus = "Available" | "Taken" | "Premium" | "Error";
+type DomainCheckErrorType = "rate_limit" | "api_error" | "network_error";
 
 export interface DomainResult {
   url: string;
@@ -20,7 +20,7 @@ export interface DomainCheckError {
 
 interface WhoisXMLAPIResponse {
   DomainInfo: {
-    domainAvailability: 'AVAILABLE' | 'UNAVAILABLE';
+    domainAvailability: "AVAILABLE" | "UNAVAILABLE";
     domainName: string;
   };
 }
@@ -33,7 +33,6 @@ interface WhoisXMLAPIErrorResponse {
 // Simple state management
 let requestCount = 0;
 let lastError: DomainCheckError | null = null;
-const MONTHLY_LIMIT = 100;
 
 /**
  * Get API key from environment
@@ -60,7 +59,7 @@ export function getLastError(): DomainCheckError | null {
  * Check if rate limit reached
  */
 export function isRateLimitReached(): boolean {
-  return requestCount >= MONTHLY_LIMIT;
+  return false;
 }
 
 /**
@@ -76,19 +75,12 @@ export function resetCounter(): void {
  */
 async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
   const apiKey = getApiKey();
-  
+
   if (!apiKey) {
     lastError = {
-      type: 'api_error',
-      message: 'WhoisXML API key not configured. Please add WHOISXML_API_KEY to your .env.local file.'
-    };
-    throw new Error(lastError.message);
-  }
-
-  if (isRateLimitReached()) {
-    lastError = {
-      type: 'rate_limit',
-      message: `Monthly limit of ${MONTHLY_LIMIT} domain checks reached. Please try again next month or upgrade your WhoisXML API plan.`
+      type: "api_error",
+      message:
+        "WhoisXML API key not configured. Please add WHOISXML_API_KEY to your .env.local file.",
     };
     throw new Error(lastError.message);
   }
@@ -96,17 +88,19 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
   try {
     const url = `https://domain-availability.whoisxmlapi.com/api/v1?apiKey=${apiKey}&domainName=${domain}`;
     const response = await fetch(url);
-    
-    requestCount++;
+
+    incrementDailyUsage();
 
     if (!response.ok) {
-      const errorData: WhoisXMLAPIErrorResponse = await response.json().catch(() => ({}));
-      
+      const errorData: WhoisXMLAPIErrorResponse = await response
+        .json()
+        .catch(() => ({}));
+
       // Rate limit error
-      if (response.status === 429 || errorData.messages?.includes('limit')) {
+      if (response.status === 429 || errorData.messages?.includes("limit")) {
         lastError = {
-          type: 'rate_limit',
-          message: `API rate limit reached. You've used ${requestCount} out of ${MONTHLY_LIMIT} monthly queries.`
+          type: "rate_limit",
+          message: `API rate limit reached. Please try again later.`,
         };
         throw new Error(lastError.message);
       }
@@ -114,49 +108,52 @@ async function checkWithWhoisXML(domain: string): Promise<DomainResult> {
       // Invalid API key
       if (response.status === 401 || response.status === 403) {
         lastError = {
-          type: 'api_error',
-          message: 'Invalid WhoisXML API key. Please check your credentials.'
+          type: "api_error",
+          message: "Invalid WhoisXML API key. Please check your credentials.",
         };
         throw new Error(lastError.message);
       }
 
       lastError = {
-        type: 'api_error',
-        message: `WhoisXML API error: ${response.status} - ${errorData.messages || 'Unknown error'}`
+        type: "api_error",
+        message: `WhoisXML API error: ${response.status} - ${
+          errorData.messages || "Unknown error"
+        }`,
       };
       throw new Error(lastError.message);
     }
 
     const data: WhoisXMLAPIResponse = await response.json();
-    const isAvailable = data.DomainInfo.domainAvailability === 'AVAILABLE';
+    const isAvailable = data.DomainInfo.domainAvailability === "AVAILABLE";
 
     return {
       url: domain,
-      status: isAvailable ? 'Available' : 'Taken'
+      status: isAvailable ? "Available" : "Taken",
     };
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     // Re-throw rate limit errors
-    if (err.message?.includes('limit') || err.message?.includes('rate')) {
+    if (err.message?.includes("limit") || err.message?.includes("rate")) {
       throw err;
     }
 
-    console.error('WhoisXML check failed:', err);
-    
+    console.error("WhoisXML check failed:", err);
+
     // Network error
-    if (err.name === 'TypeError' || err.message?.includes('fetch')) {
+    if (err.name === "TypeError" || err.message?.includes("fetch")) {
       lastError = {
-        type: 'network_error',
-        message: 'Network error. Please check your internet connection and try again.'
+        type: "network_error",
+        message:
+          "Network error. Please check your internet connection and try again.",
       };
     } else if (!lastError) {
       lastError = {
-        type: 'api_error',
-        message: err.message || 'Domain check failed. Please try again.'
+        type: "api_error",
+        message: err.message || "Domain check failed. Please try again.",
       };
     }
-    
+
     throw err;
   }
 }
@@ -168,18 +165,18 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
   const cleanDomain = domain.toLowerCase().trim();
 
   try {
-    console.log(`[${requestCount + 1}/${MONTHLY_LIMIT}] Checking domain: ${cleanDomain}`);
+    console.log(`Checking domain: ${cleanDomain}`);
     const result = await checkWithWhoisXML(cleanDomain);
     console.log(`✓ Domain ${cleanDomain} is ${result.status}`);
     return result;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`✗ Domain check failed for ${cleanDomain}:`, err.message);
-    
+
     // Return error status instead of throwing
     return {
       url: cleanDomain,
-      status: 'Error'
+      status: "Error",
     };
   }
 }
@@ -189,21 +186,15 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
  */
 export async function checkDomains(domains: string[]): Promise<DomainResult[]> {
   const results: DomainResult[] = [];
-  
-  // Check remaining quota
-  const remainingQuota = MONTHLY_LIMIT - requestCount;
-  if (domains.length > remainingQuota) {
-    console.warn(`⚠ Only ${remainingQuota} checks remaining. Limiting to available quota.`);
-  }
 
   for (let i = 0; i < domains.length; i++) {
     // Stop if rate limit reached
     if (isRateLimitReached()) {
-      console.warn('⚠ Rate limit reached. Stopping domain checks.');
-      
+      console.warn("⚠ Rate limit reached. Stopping domain checks.");
+
       // Mark remaining domains as Error
       for (let j = i; j < domains.length; j++) {
-        results.push({ url: domains[j], status: 'Error' });
+        results.push({ url: domains[j], status: "Error" });
       }
       break;
     }
@@ -211,17 +202,17 @@ export async function checkDomains(domains: string[]): Promise<DomainResult[]> {
     try {
       const result = await checkDomain(domains[i]);
       results.push(result);
-      
+
       // Rate limiting: wait 200ms between requests
       if (i < domains.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (error) {
       console.error(`Failed to check ${domains[i]}:`, error);
-      results.push({ url: domains[i], status: 'Error' });
+      results.push({ url: domains[i], status: "Error" });
     }
   }
-  
+
   return results;
 }
 

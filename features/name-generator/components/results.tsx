@@ -5,7 +5,7 @@ import { ResultsList } from './results-list';
 import { ResultsHeader } from './results-header';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
-import type { GeneratedName } from '@/features/name-generator/services/gemini-service';
+import type { GeneratedName } from '@/features/name-generator/services/groq-service';
 import { AlertTriangle } from 'lucide-react';
 
 interface ResultsProps {
