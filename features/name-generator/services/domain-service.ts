@@ -16,14 +16,27 @@ import {
   waitForNextRequest,
 } from "@/lib/rate-limit";
 
+/**
+ * Domain status enumeration
+ */
 type DomainStatus = "Available" | "Taken" | "Premium" | "Error";
+
+/**
+ * Domain check error type enumeration
+ */
 type DomainCheckErrorType = "rate_limit" | "api_error" | "network_error";
 
+/**
+ * Result of a domain availability check
+ */
 export interface DomainResult {
   url: string;
   status: DomainStatus;
 }
 
+/**
+ * Domain check error details
+ */
 export interface DomainCheckError {
   type: DomainCheckErrorType;
   message: string;

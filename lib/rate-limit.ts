@@ -33,6 +33,9 @@ const limitersState = new Map<string, RateLimiterState>();
 
 /**
  * Initialize or get limiter state
+ * @param limiterId - Unique identifier for the limiter instance
+ * @param config - Rate limit configuration (maxRequests, windowMs)
+ * @returns Limiter state object
  */
 function getOrCreateLimiterState(
   limiterId: string,
