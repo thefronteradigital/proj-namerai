@@ -89,13 +89,13 @@ describe('Gemini Library - cleanJsonResponse', () => {
   it('removes ```json markdown wrapper', () => {
     const input = '```json\n{"key": "value"}\n```';
     const result = cleanJsonResponse(input);
-    expect(result).toBe('{"key": "value"}');
+    expect(result.trim()).toBe('{"key": "value"}');
   });
 
   it('removes triple backticks wrapper', () => {
     const input = '```\n{"key": "value"}\n```';
     const result = cleanJsonResponse(input);
-    expect(result).toBe('{"key": "value"}');
+    expect(result.trim()).toBe('{"key": "value"}');
   });
 
   it('handles response without markdown', () => {

@@ -74,9 +74,12 @@ describe('Domain Service - checkDomains', () => {
     const domains = ['test.com', 'test.my', 'test.ai'];
 
     const { checkDomain: mockCheckDomain } = await import('@/lib/rdap');
-    (mockCheckDomain as any).mockResolvedValue({
-      status: 'Available',
-    });
+    (mockCheckDomain as any).mockImplementation((domain: string) => 
+      Promise.resolve({
+        domain,
+        status: 'Available',
+      })
+    );
 
     const result = await checkDomains(domains);
 
