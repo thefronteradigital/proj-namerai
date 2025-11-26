@@ -225,10 +225,23 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
 }
 
 /**
+ * Filter domains to only include specified extensions
+ * @param domains - Array of domain names to filter
+ * @returns Filtered array containing only .com, .my, .ai domains
+ */
+function filterDomainsByExtension(domains: string[]): string[] {
+  const targetExtensions = ['.com', '.my', '.ai'];
+  return domains.filter((domain) =>
+    targetExtensions.some((ext) => domain.toLowerCase().endsWith(ext))
+  );
+}
+
+/**
  * Check multiple domains with security validation
  * - Limits batch size to prevent abuse
  * - Implements request delays between API calls
  * - Handles rate limiting gracefully
+ * - Filters to only check .com, .my, .ai domains
  *
  * @param domains - Array of domain names to check
  * @returns Array of domain availability results
@@ -242,14 +255,21 @@ export async function checkDomains(domains: string[]): Promise<DomainResult[]> {
     return results;
   }
 
-  // 2. Enforce maximum batch size to prevent abuse
-  if (domains.length > CONFIG.MAX_DOMAINS_PER_BATCH) {
+  // 2. Filter to only check .com, .my, .ai domains
+  const filteredDomains = filterDomainsByExtension(domains);
+  if (filteredDomains.length === 0) {
+    console.warn("⚠ No domains with .com, .my, or .ai extensions found.");
+    return results;
+  }
+
+  // 3. Enforce maximum batch size to prevent abuse
+  if (filteredDomains.length > CONFIG.MAX_DOMAINS_PER_BATCH) {
     console.warn(
       `⚠ Batch size limited to ${CONFIG.MAX_DOMAINS_PER_BATCH}. Processing first ${CONFIG.MAX_DOMAINS_PER_BATCH} domains only.`
     );
   }
 
-  const domainsToCheck = domains.slice(0, CONFIG.MAX_DOMAINS_PER_BATCH);
+  const domainsToCheck = filteredDomains.slice(0, CONFIG.MAX_DOMAINS_PER_BATCH);
 
   for (let i = 0; i < domainsToCheck.length; i++) {
     // Check rate limit before each request
