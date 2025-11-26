@@ -1,7 +1,10 @@
 /**
- * RDAP Domain Availability Checker
+ * RDAP Domain Availability Checker Library
  * Uses Registration Data Access Protocol (RDAP) - the official WHOIS replacement
  * Free, unlimited queries - no API key required
+ *
+ * This is a library wrapper only - contains low-level RDAP API calls
+ * Business logic and service orchestration is in @/features/name-generator/services
  *
  * RDAP Endpoints:
  * - .com/.net: https://rdap.verisign.com/com/v1/domain/
@@ -76,8 +79,9 @@ function getRDAPEndpoint(domain: string): string {
 
 /**
  * Check domain availability using RDAP with timeout protection
+ * Low-level library function - used by domain service
  */
-async function checkWithRDAP(domain: string): Promise<DomainCheckResult> {
+export async function checkDomain(domain: string): Promise<DomainCheckResult> {
   const cleanDomain = domain.toLowerCase().trim();
 
   try {
@@ -205,86 +209,6 @@ async function checkWithRDAP(domain: string): Promise<DomainCheckResult> {
       error: err.message || "Domain check failed.",
     };
   }
-}
-
-/**
- * Check single domain availability
- */
-export async function checkDomain(domain: string): Promise<DomainCheckResult> {
-  const cleanDomain = domain.toLowerCase().trim();
-
-  try {
-    console.log(`Checking domain via RDAP: ${cleanDomain}`);
-    const result = await checkWithRDAP(cleanDomain);
-
-    if (result.status === "Available") {
-      console.log(`✓ Domain ${cleanDomain} is Available`);
-    } else if (result.status === "Taken") {
-      console.log(`✓ Domain ${cleanDomain} is Taken`);
-    } else {
-      console.log(`✗ Domain check error for ${cleanDomain}: ${result.error}`);
-    }
-
-    return result;
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    console.error(`Failed to check ${cleanDomain}:`, err.message);
-
-    return {
-      domain: cleanDomain,
-      available: false,
-      status: "Error",
-      error: err.message || "Domain check failed.",
-    };
-  }
-}
-
-/**
- * Check multiple domains with rate limiting
- * RDAP allows generous rate limiting (typically 200+ queries per session)
- */
-export async function checkDomains(
-  domains: string[]
-): Promise<DomainCheckResult[]> {
-  const results: DomainCheckResult[] = [];
-
-  // Validate input
-  if (!Array.isArray(domains) || domains.length === 0) {
-    console.warn("⚠ Invalid domains input.");
-    return results;
-  }
-
-  // Enforce maximum batch size
-  const MAX_DOMAINS_PER_BATCH = 10;
-  if (domains.length > MAX_DOMAINS_PER_BATCH) {
-    console.warn(
-      `⚠ Batch size limited to ${MAX_DOMAINS_PER_BATCH}. Processing first ${MAX_DOMAINS_PER_BATCH} domains only.`
-    );
-  }
-
-  const domainsToCheck = domains.slice(0, MAX_DOMAINS_PER_BATCH);
-
-  for (let i = 0; i < domainsToCheck.length; i++) {
-    try {
-      const result = await checkDomain(domainsToCheck[i]);
-      results.push(result);
-
-      // Delay between requests: 300ms for RDAP (faster than WhoisXML)
-      if (i < domainsToCheck.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-    } catch (error) {
-      console.error(`Failed to check ${domainsToCheck[i]}:`, error);
-      results.push({
-        domain: domainsToCheck[i].toLowerCase().trim(),
-        available: false,
-        status: "Error",
-        error: "Domain check failed.",
-      });
-    }
-  }
-
-  return results;
 }
 
 /**

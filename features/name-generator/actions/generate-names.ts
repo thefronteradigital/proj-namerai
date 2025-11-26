@@ -1,6 +1,6 @@
 'use server';
 
-import { generateNames, type FormState, type GeneratedName } from '@/lib/groq';
+import { generateNamesWithGroq, type FormState, type GeneratedName } from '@/features/name-generator/services/name-generator';
 import { domainService } from '@/features/name-generator/services/domain-service';
 
 interface GenerateNamesResult {
@@ -17,7 +17,8 @@ export async function generateNamesAction(
   let rateLimitWarning: string | null = null;
 
   try {
-    results = await generateNames(formState);
+    // Use Groq API for name generation
+    results = await generateNamesWithGroq(formState);
 
     // Check for rate limit warnings
     if (formState.checkDomains) {

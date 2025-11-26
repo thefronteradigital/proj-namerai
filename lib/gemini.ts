@@ -1,59 +1,36 @@
+/**
+ * Google Gemini AI Library Wrapper
+ *
+ * This is a low-level library wrapper only - contains direct API calls to Google Gemini
+ * Business logic and service orchestration is in @/features/name-generator/services
+ *
+ * For name generation service, see: @/features/name-generator/services/name-generator.ts
+ */
+
 import { GoogleGenAI } from "@google/genai";
-import {
-  NAME_LENGTHS,
-  type Language,
-  type NamingStyle,
-  type NameLength,
-} from "../features/name-generator/constants/form-options";
-import {
-  domainService,
-  type DomainResult,
-} from "@/features/name-generator/services/domain-service";
-
-export interface GeneratedName {
-  name: string;
-  meaning: string;
-  languageOrigin: string;
-  domains?: DomainResult[];
-}
-
-export interface FormState {
-  language: Language;
-  style: NamingStyle;
-  length: NameLength;
-  keywords: string;
-  checkDomains: boolean;
-}
 
 /**
- * Get length guidance based on selected length
+ * Gemini API Configuration
  */
-const getLengthGuidance = (length: NameLength): string => {
-  switch (length) {
-    case NAME_LENGTHS.SHORT:
-      return "Generate SHORT, single-word names (like 'Wix', 'Google', 'Uber', 'Zoom'). One word only, concise and memorable.";
-    case NAME_LENGTHS.MEDIUM:
-      return "Generate MEDIUM length names with 2 words or compound words (like 'Facebook', 'YouTube', 'LinkedIn', 'AirBnB'). Two words max.";
-    case NAME_LENGTHS.LONG:
-      return "Generate LONGER names with 3 or more words or descriptive phrases (like 'The Coffee House', 'Blue Horizon Studios'). Can be 3+ words.";
-    default:
-      return "Generate names of varying lengths.";
-  }
+const GEMINI_CONFIG = {
+  model: "gemini-2.0-flash-exp",
+  temperature: 0.9,
+  topP: 0.95,
+  topK: 40,
 };
 
 /**
- * Get language guidance based on selected language
+ * Generate content using Google Gemini
+ * Low-level library function - used by name generator service
+ *
+ * @param systemInstruction - System prompt for AI behavior
+ * @param userPrompt - User's input prompt
+ * @returns Generated text response
  */
-const getLanguageGuidance = (language: string): string => {
-  if (language === "Mix (Multilingual)") {
-    return "Mix multiple languages creatively. Blend word roots from English, Malay, Japanese, and other languages. Create fusion names that sound international and unique.";
-  }
-  return `Use authentic word roots, phonetics, or shortened forms from ${language}.`;
-};
-
-export const generateNames = async (
-  form: FormState
-): Promise<GeneratedName[]> => {
+export async function generateContent(
+  systemInstruction: string,
+  userPrompt: string
+): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
   if (!apiKey) {
@@ -65,189 +42,41 @@ export const generateNames = async (
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    // Reset domain service error state
-    domainService.resetCounter();
-
-    // Construct System Instruction
-    const systemInstruction = `
-You are a Multilingual Project Name Generator AI.
-Your task is to generate unique, brandable project names based on the user's input.
-
-1. LANGUAGE SELECTION
-${getLanguageGuidance(form.language)}
-Names may blend with English-based suffixes like -tech, -labs, -works, -nova, etc.
-
-2. NAME STYLE
-Follow the tone: ${form.style}.
-
-3. NAME LENGTH
-${getLengthGuidance(form.length)}
-
-4. OUTPUT FORMAT
-Return your response as a JSON object with this structure:
-{
-  "names": [
-    {
-      "name": "ProjectName",
-      "meaning": "Brief explanation of the name's meaning and origin",
-      "languageOrigin": "Language(s) used",
-      "suggestedDomains": ["projectname.com", "projectname.io", "projectname.ai"]
-    }
-  ]
-}
-
-Generate 4-6 high-quality names. For each name, suggest 2-3 relevant domain extensions (.com, .io, .ai, .app, .my, .jp, etc.).
-`;
-
-    // Construct User Prompt
-    const userPrompt = `
-Generate project names based on:
-- Language: ${form.language}
-- Style: ${form.style}
-- Length: ${form.length}
-- Keywords: ${form.keywords || "None"}
-
-Return ONLY valid JSON. No markdown, no explanations.
-`;
-
-    // Use the correct API method from documentation
     const result = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: GEMINI_CONFIG.model,
       contents: systemInstruction + "\n\n" + userPrompt,
       config: {
-        temperature: 0.9,
-        topP: 0.95,
-        topK: 40,
+        temperature: GEMINI_CONFIG.temperature,
+        topP: GEMINI_CONFIG.topP,
+        topK: GEMINI_CONFIG.topK,
       },
     });
 
-    // Extract and parse response
     const text = result.text;
     if (!text) {
       throw new Error("No response generated from API");
     }
 
-    // Clean up response (remove markdown if present)
-    let cleanedText = text.trim();
-    if (cleanedText.startsWith("```json")) {
-      cleanedText = cleanedText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "");
-    } else if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.replace(/```\n?/g, "");
-    }
-
-    const parsed = JSON.parse(cleanedText);
-
-    if (!parsed.names || !Array.isArray(parsed.names)) {
-      throw new Error("Invalid response format from API");
-    }
-
-    console.log(`✅ Successfully generated ${parsed.names.length} names`);
-
-    // Process domain checking if enabled
-    if (form.checkDomains) {
-      console.log("🔍 Starting domain availability checks...");
-
-      const namesWithDomains: GeneratedName[] = [];
-
-      for (const nameItem of parsed.names) {
-        const suggestedDomains = nameItem.suggestedDomains || [];
-
-        if (suggestedDomains.length > 0) {
-          try {
-            console.log(`Checking domains for "${nameItem.name}"...`);
-            const domainResults = await domainService.checkDomains(
-              suggestedDomains
-            );
-
-            namesWithDomains.push({
-              ...nameItem,
-              domains: domainResults,
-            });
-
-            // Check if rate limit reached
-            if (domainService.isRateLimitReached()) {
-              console.warn("⚠ Rate limit reached. Stopping domain checks.");
-              // Add remaining names without domain checks
-              const remainingNames = parsed.names.slice(
-                namesWithDomains.length
-              );
-              namesWithDomains.push(
-                ...remainingNames.map((n: GeneratedName) => ({
-                  ...n,
-                  domains: [],
-                }))
-              );
-              break;
-            }
-          } catch (error) {
-            const err =
-              error instanceof Error ? error : new Error(String(error));
-            console.error(`Domain check failed for ${nameItem.name}:`, err);
-            namesWithDomains.push({
-              ...nameItem,
-              domains: suggestedDomains.map((d: string) => ({
-                url: d,
-                status: "Error" as const,
-              })),
-            });
-          }
-        } else {
-          namesWithDomains.push({
-            ...nameItem,
-            domains: [],
-          });
-        }
-      }
-
-      // Show rate limit warning if reached
-      const lastError = domainService.getLastError();
-      if (lastError?.type === "rate_limit") {
-        console.warn(`⚠ ${lastError.message}`);
-      }
-
-      return namesWithDomains;
-    }
-
-    // Return without domain checking
-    return parsed.names.map((n: GeneratedName) => ({
-      ...n,
-      domains: [],
-    }));
+    return text;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Gemini Service Error:", err);
-
-    // Provide more specific error messages
-    if (
-      err.message?.includes("API key") ||
-      err.message?.includes("API_KEY_INVALID")
-    ) {
-      throw new Error(
-        "Invalid API Key. Please check your GEMINI_API_KEY in .env.local"
-      );
-    }
-
-    if (
-      err.message?.includes("quota") ||
-      err.message?.includes("RESOURCE_EXHAUSTED")
-    ) {
-      throw new Error(
-        "API quota exceeded. Please try again later or check your billing."
-      );
-    }
-
-    if (err.message?.includes("network") || err.message?.includes("fetch")) {
-      throw new Error("Network error. Please check your internet connection.");
-    }
-
-    if (err.message?.includes("JSON")) {
-      throw new Error("Failed to parse AI response. Please try again.");
-    }
-
-    throw new Error(
-      err.message || "Failed to generate names. Please try again."
-    );
+    console.error("Gemini API Error:", err);
+    throw err;
   }
-};
+}
+
+/**
+ * Clean JSON response from API (removes markdown formatting)
+ *
+ * @param text - Raw text response from API
+ * @returns Cleaned JSON string
+ */
+export function cleanJsonResponse(text: string): string {
+  let cleanedText = text.trim();
+  if (cleanedText.startsWith("```json")) {
+    cleanedText = cleanedText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+  } else if (cleanedText.startsWith("```")) {
+    cleanedText = cleanedText.replace(/```\n?/g, "");
+  }
+  return cleanedText;
+}
