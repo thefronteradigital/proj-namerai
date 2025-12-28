@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "next build && next-on-pages",
     "start": "next start",
     "lint": "eslint",
     "lint-fix": "eslint --fix",
     "type": "tsc --noEmit",
     "test": "vitest",
+    "pages:deploy": "wrangler pages deploy .vercel/output/static",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
   },
@@ -26,6 +28,7 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.8",
     "@tailwindcss/postcss": "^4",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20",
@@ -38,6 +41,7 @@
     "jsdom": "^22.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "wrangler": "^3.91.0",
     "vitest": "^0.34.0"
   }
 }

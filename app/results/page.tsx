@@ -5,6 +5,8 @@ import { Results } from '@/features/name-generator/components/results';
 import { generateNamesAction } from '@/features/name-generator/actions/generate-names';
 import { redirect } from 'next/navigation';
 
+export const runtime = 'edge';
+
 export const metadata: Metadata = {
   title: "Generated Brand Names - AI Results",
   description: "View your AI-generated brand names with meanings, language origins, and domain availability status. Find the perfect name for your business.",
