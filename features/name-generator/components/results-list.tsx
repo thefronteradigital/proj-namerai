@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GeneratedName } from "@/features/name-generator/services/name-generator";
 import {
   Check,
@@ -11,19 +11,45 @@ import {
   Copy,
   CheckCheck,
   ChevronDown,
+  Heart,
 } from "lucide-react";
+import {
+  getSavedNames,
+  isNameSaved,
+  toggleSavedName,
+} from "@/lib/saved-names";
 
 interface ResultsListProps {
   results: GeneratedName[];
+  countLabel?: string;
+  savedNames?: GeneratedName[];
+  onSavedNamesChange?: (names: GeneratedName[]) => void;
 }
 
 interface ExpandedState {
   [key: string]: boolean;
 }
 
-export function ResultsList({ results }: ResultsListProps) {
+export function ResultsList({
+  results,
+  countLabel,
+  savedNames: savedNamesProp,
+  onSavedNamesChange,
+}: ResultsListProps) {
   const [copiedName, setCopiedName] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [internalSavedNames, setInternalSavedNames] = useState<GeneratedName[]>(
+    []
+  );
+
+  const savedNames = savedNamesProp ?? internalSavedNames;
+  const setSavedNames = onSavedNamesChange ?? setInternalSavedNames;
+
+  useEffect(() => {
+    if (!savedNamesProp) {
+      setInternalSavedNames(getSavedNames());
+    }
+  }, [savedNamesProp]);
 
   if (results.length === 0) return null;
 
@@ -35,6 +61,11 @@ export function ResultsList({ results }: ResultsListProps) {
     } catch (err) {
       console.error("Failed to copy:", err);
     }
+  };
+
+  const handleToggleSave = (item: GeneratedName) => {
+    const nextSaved = toggleSavedName(item, savedNames);
+    setSavedNames(nextSaved);
   };
 
   const toggleExpanded = (key: string) => {
@@ -58,7 +89,8 @@ export function ResultsList({ results }: ResultsListProps) {
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-slate-600">
           <span className="font-semibold text-slate-900">{results.length}</span>{" "}
-          {results.length === 1 ? "name" : "names"} generated
+          {countLabel ??
+            `${results.length === 1 ? "name" : "names"} generated`}
         </p>
       </div>
 
@@ -73,18 +105,41 @@ export function ResultsList({ results }: ResultsListProps) {
                 <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
                   {item.languageOrigin}
                 </span>
-                <button
-                  onClick={() => handleCopyName(item.name)}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors touch-manipulation"
-                  aria-label={`Copy ${item.name} to clipboard`}
-                  title="Copy name"
-                >
-                  {copiedName === item.name ? (
-                    <CheckCheck className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-                  )}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleSave(item)}
+                    className="p-2 rounded-lg hover:bg-rose-50 transition-colors touch-manipulation"
+                    aria-label={`${
+                      isNameSaved(item, savedNames) ? "Remove" : "Save"
+                    } ${item.name}`}
+                    title={
+                      isNameSaved(item, savedNames)
+                        ? "Remove from saved"
+                        : "Save name"
+                    }
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-colors ${
+                        isNameSaved(item, savedNames)
+                          ? "text-rose-500"
+                          : "text-slate-400 group-hover:text-rose-400"
+                      }`}
+                      fill={isNameSaved(item, savedNames) ? "currentColor" : "none"}
+                    />
+                  </button>
+                  <button
+                    onClick={() => handleCopyName(item.name)}
+                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors touch-manipulation"
+                    aria-label={`Copy ${item.name} to clipboard`}
+                    title="Copy name"
+                  >
+                    {copiedName === item.name ? (
+                      <CheckCheck className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                    )}
+                  </button>
+                </div>
               </div>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight break-words">
                 {item.name}
