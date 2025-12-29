@@ -31,7 +31,6 @@ export function GeneratorForm() {
       style: formState.style,
       length: formState.length,
       keywords: formState.keywords,
-      checkDomains: String(formState.checkDomains),
     });
     router.push(`/results?${params.toString()}`);
   };
@@ -41,7 +40,7 @@ export function GeneratorForm() {
       {/* Unified Form Container */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-slate-200 relative z-30">
         {/* Controls / Filters - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
           {/* Language Selector */}
           <FormInput label="Language" className="md:col-span-1">
             <div className="relative group">
@@ -114,38 +113,6 @@ export function GeneratorForm() {
             </div>
           </FormInput>
 
-          {/* Domain Toggle */}
-          <FormInput label="Preferences" className="md:col-span-1">
-            <label className="flex items-center justify-between w-full h-9 px-2.5 bg-white border-2 border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 transition-all group box-border shadow-sm">
-              <span className="text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition-colors select-none">
-                Check Domains
-              </span>
-
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={formState.checkDomains}
-                  onChange={() =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      checkDomains: !prev.checkDomains,
-                    }))
-                  }
-                />
-                <div
-                  className={`w-8 h-4 rounded-full transition-colors duration-300 ${
-                    formState.checkDomains ? "bg-blue-600" : "bg-slate-300"
-                  }`}
-                ></div>
-                <div
-                  className={`absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${
-                    formState.checkDomains ? "translate-x-4" : ""
-                  }`}
-                ></div>
-              </div>
-            </label>
-          </FormInput>
         </div>
 
         {/* Divider */}

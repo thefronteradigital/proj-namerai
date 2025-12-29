@@ -227,10 +227,21 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
 /**
  * Filter domains to only include specified extensions
  * @param domains - Array of domain names to filter
- * @returns Filtered array containing only .com, .my, .ai domains
+ * @returns Filtered array containing only supported domain extensions
  */
 function filterDomainsByExtension(domains: string[]): string[] {
-  const targetExtensions = ['.com', '.my', '.ai'];
+  const targetExtensions = [
+    ".com",
+    ".my",
+    ".com.my",
+    ".shop",
+    ".ai",
+    ".net",
+    ".org",
+    ".edu.my",
+    ".biz.my",
+    ".xyz",
+  ];
   return domains.filter((domain) =>
     targetExtensions.some((ext) => domain.toLowerCase().endsWith(ext))
   );
@@ -311,4 +322,3 @@ export const domainService = {
   isRateLimitReached,
   resetCounter,
 };
-

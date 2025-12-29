@@ -16,7 +16,7 @@ const GROQ_CONFIG = {
   model: "llama-3.1-8b-instant",
   temperature: 0.9,
   topP: 0.95,
-  maxTokens: 1024,
+  maxTokens: 2048,
 };
 
 /**
@@ -87,5 +87,66 @@ export function cleanJsonResponse(text: string): string {
   } else if (cleanedText.startsWith("```")) {
     cleanedText = cleanedText.replace(/```\n?/g, "");
   }
-  return cleanedText;
+  const jsonStart = cleanedText.indexOf("{");
+  const jsonEnd = cleanedText.lastIndexOf("}");
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+    cleanedText = cleanedText.slice(jsonStart, jsonEnd + 1);
+  }
+  return sanitizeJsonString(cleanedText);
+}
+
+function sanitizeJsonString(input: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        result += char;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        result += char;
+        continue;
+      }
+
+      if (char === "\"") {
+        inString = false;
+        result += char;
+        continue;
+      }
+
+      if (char === "\n") {
+        result += "\\n";
+        continue;
+      }
+
+      if (char === "\r") {
+        result += "\\r";
+        continue;
+      }
+
+      if (char === "\t") {
+        result += "\\t";
+        continue;
+      }
+
+      result += char;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+    }
+
+    result += char === "“" || char === "”" ? "\"" : char;
+  }
+
+  return result;
 }

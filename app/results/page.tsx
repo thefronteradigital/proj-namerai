@@ -38,7 +38,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const language = (params.language as Language) || LANGUAGES.ENGLISH;
   const style = (params.style as NamingStyle) || NAMING_STYLES.TECHY;
   const length = (params.length as NameLength) || NAME_LENGTHS.SHORT;
-  const checkDomains = params.checkDomains === 'true';
+  const checkDomains = false;
 
   const formState: FormState = {
     keywords,

@@ -96,19 +96,26 @@ Return your response as a JSON object with this structure:
   "names": [
     {
       "name": "ProjectName",
-      "meaning": "Brief explanation of the name's meaning and origin",
+      "meaning": "2-3 sentence explanation of the name's meaning, origin, and why it fits the project. No quotes or line breaks.",
       "languageOrigin": "Language(s) used",
-      "suggestedDomains": ["projectname.com", "projectname.my", "projectname.ai"]
+      "suggestedDomains": ["projectname.com", "projectname.my", "projectname.com.my", "projectname.shop", "projectname.ai", "projectname.net", "projectname.org", "projectname.edu.my", "projectname.biz.my", "projectname.xyz"]
     }
   ]
 }
 
-Generate exactly 10 high-quality names. For each name, you MUST suggest exactly these 3 domain extensions in this order:
-1. .com (international)
-2. .my (Malaysia)
-3. .ai (AI/tech focus)
+Generate exactly 20 high-quality names. For each name, you MUST suggest exactly these 10 domain extensions in this order:
+1. .com
+2. .my
+3. .com.my
+4. .shop
+5. .ai
+6. .net
+7. .org
+8. .edu.my
+9. .biz.my
+10. .xyz
 
-Always provide all 3 domains for every name.`;
+Always provide all 10 domains for every name.`;
 }
 
 /**
@@ -121,7 +128,9 @@ function getUserPrompt(form: FormState): string {
 - Length: ${form.length}
 - Keywords: ${form.keywords || "None"}
 
-Return ONLY valid JSON. No markdown, no explanations.`;
+Return ONLY valid JSON. No markdown, no explanations.
+Use double quotes for all keys and string values.
+Do not include unescaped quotes or line breaks inside strings.`;
 }
 
 /**
@@ -211,15 +220,26 @@ export async function generateNamesWithGroq(
 }
 
 /**
- * Ensure all names have .com, .my, and .ai domain suggestions
+ * Ensure all names have the required domain suggestions
  * Fallback to generating them from the name if AI didn't provide them
  */
 function ensureRequiredDomains(names: GeneratedName[]): GeneratedName[] {
-  const requiredExtensions = ['.com', '.my', '.ai'];
+  const requiredExtensions = [
+    ".com",
+    ".my",
+    ".com.my",
+    ".shop",
+    ".ai",
+    ".net",
+    ".org",
+    ".edu.my",
+    ".biz.my",
+    ".xyz",
+  ];
   
   return names.map((nameItem) => {
     const suggestedDomains = nameItem.suggestedDomains || [];
-    const nameLower = nameItem.name.toLowerCase().replace(/\s+/g, '');
+    const nameLower = nameItem.name.toLowerCase().replace(/[^a-z0-9]/g, "");
     
     // Check which required extensions are missing
     const missingExtensions = requiredExtensions.filter(
@@ -230,12 +250,10 @@ function ensureRequiredDomains(names: GeneratedName[]): GeneratedName[] {
     const additionalDomains = missingExtensions.map(ext => `${nameLower}${ext}`);
     const allDomains = [...suggestedDomains, ...additionalDomains];
     
-    // Ensure we have exactly .com, .my, and .ai in the correct order
-    const orderedDomains = [
-      allDomains.find(d => d.endsWith('.com')) || `${nameLower}.com`,
-      allDomains.find(d => d.endsWith('.my')) || `${nameLower}.my`,
-      allDomains.find(d => d.endsWith('.ai')) || `${nameLower}.ai`,
-    ];
+    // Ensure we have all required extensions in the correct order
+    const orderedDomains = requiredExtensions.map(
+      (ext) => allDomains.find((d) => d.endsWith(ext)) || `${nameLower}${ext}`
+    );
     
     return {
       ...nameItem,
