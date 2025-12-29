@@ -26,7 +26,7 @@ export default function Home() {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Any',
     url: APP_URL,
-    description: 'AI-powered brand name generator that creates unique, multilingual business names with automated domain availability checks. 200 free domain checks per day.',
+    description: 'AI-powered brand name generator that creates unique, multilingual business names with automated domain availability checks. Limited free search.',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -64,14 +64,14 @@ export default function Home() {
         }}
       />
 
-      <div className="flex-1 w-full max-w-5xl mx-auto px-4 md:px-6 flex flex-col justify-center items-center pb-32 pt-20">
+      <div className="flex-1 w-full max-w-5xl mx-auto px-4 md:px-6 flex flex-col justify-center items-center pb-16 pt-10 md:pb-32 md:pt-20">
         {/* Overlay to reduce background distraction */}
         <div className="fixed inset-0 bg-white/40 backdrop-blur-[2px] pointer-events-none -z-10" />
-        
+
         <div className="w-full max-w-4xl flex flex-col items-center animate-in fade-in zoom-in duration-500 relative z-10">
           <Hero />
 
-          <div className="w-full mt-12">
+          <div className="w-full mt-8 md:mt-12">
             <GeneratorForm />
           </div>
         </div>

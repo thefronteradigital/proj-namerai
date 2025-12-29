@@ -23,6 +23,7 @@ export function GeneratorForm() {
     keywords: "",
     checkDomains: false,
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,9 +39,30 @@ export function GeneratorForm() {
   return (
     <form onSubmit={handleGenerate} className="flex flex-col gap-6">
       {/* Unified Form Container */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-slate-200 relative z-30">
-        {/* Controls / Filters - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+      <div className="bg-white rounded-2xl p-4 md:p-6 shadow-xl border-2 border-slate-200 relative z-30">
+
+        {/* Mobile Filter Toggle */}
+        <button
+          type="button"
+          onClick={() => setShowFilters(!showFilters)}
+          className="md:hidden w-full flex items-center justify-between px-4 py-3 mb-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 active:scale-[0.99] transition-all"
+        >
+          <div className="flex items-center gap-2.5">
+            <Settings2 className="w-4 h-4 text-blue-600" />
+            <span className="truncate max-w-[200px]">
+              {showFilters
+                ? "Hide Options"
+                : `${formState.language} • ${formState.style} • ${formState.length}`
+              }
+            </span>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Controls / Filters */}
+        <div className={`grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 mb-5 ${showFilters ? 'grid animate-in slide-in-from-top-2 fade-in duration-300' : 'hidden md:grid'}`}>
           {/* Language Selector */}
           <FormInput label="Language" className="md:col-span-1">
             <div className="relative group">
@@ -52,7 +74,7 @@ export function GeneratorForm() {
                     language: e.target.value as Language,
                   }))
                 }
-                className="w-full h-9 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-8 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
+                className="w-full h-11 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-9 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
               >
                 {Object.values(LANGUAGES).map((lang) => (
                   <option key={lang} value={lang}>
@@ -60,8 +82,8 @@ export function GeneratorForm() {
                   </option>
                 ))}
               </select>
-              <Globe className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </FormInput>
 
@@ -76,7 +98,7 @@ export function GeneratorForm() {
                     style: e.target.value as NamingStyle,
                   }))
                 }
-                className="w-full h-9 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-8 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
+                className="w-full h-11 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-9 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
               >
                 {Object.values(NAMING_STYLES).map((style) => (
                   <option key={style} value={style}>
@@ -84,8 +106,8 @@ export function GeneratorForm() {
                   </option>
                 ))}
               </select>
-              <Settings2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Settings2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </FormInput>
 
@@ -100,7 +122,7 @@ export function GeneratorForm() {
                     length: e.target.value as NameLength,
                   }))
                 }
-                className="w-full h-9 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-8 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
+                className="w-full h-11 bg-white border-2 border-slate-300 text-slate-800 font-medium text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-9 pr-8 outline-none appearance-none cursor-pointer hover:border-slate-400 transition-colors shadow-sm"
               >
                 {Object.values(NAME_LENGTHS).map((length) => (
                   <option key={length} value={length}>
@@ -108,15 +130,15 @@ export function GeneratorForm() {
                   </option>
                 ))}
               </select>
-              <Type className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Type className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-blue-600 transition-colors" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </FormInput>
 
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-200 my-5" />
+        <div className={`border-t border-slate-200 my-5 ${showFilters ? 'block' : 'hidden md:block'}`} />
 
         {/* Main Input Bar */}
         <div className="flex flex-col md:flex-row items-center gap-3">
@@ -128,14 +150,14 @@ export function GeneratorForm() {
                 setFormState((prev) => ({ ...prev, keywords: e.target.value }))
               }
               placeholder="Describe your project (e.g. coffee shop)"
-              className="w-full h-14 md:h-16 px-4 md:px-5 bg-slate-50 border-2 border-slate-300 rounded-xl text-base md:text-lg font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full h-14 px-4 md:px-5 bg-slate-50 border-2 border-slate-300 rounded-xl text-base md:text-lg font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               autoFocus
             />
           </div>
 
           <button
             type="submit"
-            className="w-full md:w-auto px-8 h-14 md:h-16 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base md:text-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 whitespace-nowrap"
+            className="w-full md:w-auto px-8 h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base md:text-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 whitespace-nowrap"
           >
             <span>Generate</span>
             <ArrowRight className="w-5 h-5" />

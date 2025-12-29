@@ -11,9 +11,12 @@ import {
   AlertCircle,
   Copy,
   CheckCheck,
-  ChevronDown,
+  ChevronRight,
   Heart,
   X as CloseIcon,
+  Globe,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import {
   getSavedNames,
@@ -62,7 +65,6 @@ export function ResultsList({
   );
   const [activeItem, setActiveItem] = useState<GeneratedName | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isDomainOpen, setIsDomainOpen] = useState(false);
   const [domainResultsMap, setDomainResultsMap] = useState<
     Record<string, DomainResult[]>
   >({});
@@ -85,10 +87,7 @@ export function ResultsList({
     }
   }, [savedNamesProp]);
 
-  useEffect(() => {
-    setIsDomainOpen(false);
-  }, [activeItem]);
-
+  // Handle Sheet interactions
   useEffect(() => {
     if (!isSheetOpen) return;
 
@@ -148,24 +147,24 @@ export function ResultsList({
   const handleOpenSheet = (item: GeneratedName) => {
     setActiveItem(item);
     setIsSheetOpen(true);
+    // Automatically trigger domain check if not checked yet
+    const key = getItemKey(item);
+    if (!domainResultsMap[key] && !domainLoadingMap[key]) {
+      checkDomains(item);
+    }
   };
 
   const handleCloseSheet = () => {
     setIsSheetOpen(false);
+    setTimeout(() => setActiveItem(null), 300); // Wait for transition
   };
 
-  const handleToggleDomains = async () => {
-    if (!activeItem) return;
-    const nextOpen = !isDomainOpen;
-    setIsDomainOpen(nextOpen);
-
-    if (!nextOpen) return;
-
-    const key = getItemKey(activeItem);
+  const checkDomains = async (item: GeneratedName) => {
+    const key = getItemKey(item);
     if (domainResultsMap[key] || domainLoadingMap[key]) return;
 
     setDomainLoadingMap((prev) => ({ ...prev, [key]: true }));
-    const domains = getSuggestedDomains(activeItem);
+    const domains = getSuggestedDomains(item);
     const { results: domainResults, error } = await checkDomainsAction(domains);
     setDomainResultsMap((prev) => ({ ...prev, [key]: domainResults }));
     setDomainErrorMap((prev) => ({ ...prev, [key]: error }));
@@ -187,291 +186,259 @@ export function ResultsList({
   if (results.length === 0) return null;
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          <span className="font-semibold text-slate-900">{results.length}</span>{" "}
-          {countLabel ??
-            `${results.length === 1 ? "name" : "names"} generated`}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {results.map((item, index) => (
-          <div
-            key={`${item.name}-${item.languageOrigin}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleOpenSheet(item)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                handleOpenSheet(item);
-              }
-            }}
-            className="group text-left bg-white rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            aria-label={`Open details for ${item.name}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
-                {item.languageOrigin}
-              </span>
-              <span className="text-[11px] font-semibold text-slate-400">
-                #{String(index + 1).padStart(2, "0")}
-              </span>
-            </div>
-            <h3 className="text-2xl font-display font-bold text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight mt-4">
-              {item.name}
-            </h3>
-            <div className="flex flex-wrap items-center gap-2 mt-4">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleToggleSave(item);
-                }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 transition-colors"
-              >
-                <Heart
-                  className="w-3.5 h-3.5"
-                  fill={isNameSaved(item, savedNames) ? "currentColor" : "none"}
-                />
-                {isNameSaved(item, savedNames) ? "Saved" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleCopyName(item.name);
-                }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
-              >
-                {copiedName === item.name ? (
-                  <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-                {copiedName === item.name ? "Copied" : "Copy"}
-              </button>
-            </div>
+    <>
+      <div className="w-full">
+        {/* Results Metadata */}
+        <div className="mb-8 flex items-end justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-xl font-display font-bold text-slate-900">
+              Generated Results
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Found <span className="font-semibold text-slate-900">{results.length}</span>{" "}
+              {countLabel ?? "names based on your criteria"}
+            </p>
           </div>
-        ))}
+        </div>
+
+        {/* Results Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {results.map((item, index) => (
+            <div
+              key={`${item.name}-${item.languageOrigin}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleOpenSheet(item)}
+              className="group relative bg-white rounded-2xl p-5 md:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05),0_0_0_1px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.1),0_0_0_1px_rgba(59,130,246,0.1)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden isolate"
+            >
+              <div className="absolute inset-0 bg-linear-to-br from-slate-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+
+              <div className="flex items-center justify-between mb-6 md:mb-8">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
+                  <Globe className="w-3 h-3" />
+                  {item.languageOrigin}
+                </span>
+                <span className="text-[10px] items-center justify-center hidden group-hover:flex text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-full animate-in fade-in zoom-in duration-200">
+                  View <ChevronRight className="w-3 h-3 ml-0.5" />
+                </span>
+              </div>
+
+              <h3 className="text-2xl md:text-3xl font-display font-bold text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight mb-3">
+                {item.name}
+              </h3>
+
+              <p className="text-sm text-slate-500 line-clamp-2 mb-6 h-10">
+                {item.meaning}
+              </p>
+
+              <div className="flex items-center gap-2 pt-4 border-t border-slate-50 group-hover:border-slate-100/50 transition-colors">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleToggleSave(item);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${isNameSaved(item, savedNames)
+                    ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 group-hover:bg-white group-hover:shadow-sm group-hover:ring-1 group-hover:ring-slate-200"
+                    }`}
+                >
+                  <Heart
+                    className={`w-4 h-4 ${isNameSaved(item, savedNames) ? "fill-current" : ""}`}
+                  />
+                  {isNameSaved(item, savedNames) ? "Saved" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleCopyName(item.name);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-600 hover:bg-slate-100 group-hover:bg-white group-hover:shadow-sm group-hover:ring-1 group-hover:ring-slate-200 transition-all"
+                >
+                  {copiedName === item.name ? (
+                    <>
+                      <CheckCheck className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* Sheet / Drawer Overlay */}
       <div
-        className={`fixed inset-0 z-50 ${
-          isSheetOpen ? "pointer-events-auto" : "pointer-events-none"
-        }`}
-      >
-        <div
-          className={`absolute inset-0 bg-slate-900/30 transition-opacity duration-200 ${
-            isSheetOpen ? "opacity-100" : "opacity-0"
+        className={`fixed inset-0 z-50 transition-all duration-500 ${isSheetOpen ? "pointer-events-auto visible shadow-none" : "pointer-events-none invisible delay-300"
           }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-500 ${isSheetOpen ? "opacity-100" : "opacity-0"
+            }`}
           onClick={handleCloseSheet}
         />
+
+        {/* Sheet Content */}
         <aside
           ref={sheetRef}
-          className={`absolute right-0 top-0 h-full w-full sm:max-w-md bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ${
-            isSheetOpen ? "translate-x-0" : "translate-x-full"
-          }`}
+          className={`absolute right-0 top-0 h-full w-full sm:max-w-[520px] bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isSheetOpen ? "translate-x-0" : "translate-x-full"
+            }`}
           role="dialog"
           aria-modal="true"
-          aria-labelledby="name-detail-title"
-          aria-hidden={!isSheetOpen}
         >
-          <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white/70 backdrop-blur">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                  Name Detail
-                </span>
-                <h2
-                  id="name-detail-title"
-                  className="text-2xl font-display font-bold text-slate-900"
-                >
-                  {activeItem?.name ?? "Select a name"}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={handleCloseSheet}
-                ref={closeButtonRef}
-                className="w-9 h-9 rounded-full border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center justify-center transition-colors"
-                aria-label="Close details"
-              >
-                <CloseIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-              {activeItem ? (
-                <>
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-5 space-y-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                        {activeItem.languageOrigin}
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                        Meaning
-                      </span>
-                    </div>
-                    <p className="text-slate-700 text-sm leading-relaxed">
-                      {activeItem.meaning}
-                    </p>
+          {activeItem && (
+            <div className="h-full flex flex-col bg-slate-50/50">
+              {/* Sheet Header */}
+              <div className="flex-none px-5 py-5 md:px-8 md:py-6 bg-white border-b border-slate-100">
+                <div className="flex items-center justify-between mb-4 md:mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                    <Globe className="w-3 h-3" />
+                    {activeItem.languageOrigin}
                   </div>
+                  <button
+                    onClick={handleCloseSheet}
+                    className="group flex flex-col items-center justify-center w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <CloseIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-700 transition-colors" />
+                  </button>
+                </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="space-y-4">
+                  <h2 className="text-3xl md:text-5xl font-display font-bold text-slate-900 tracking-tight break-words">
+                    {activeItem.name}
+                  </h2>
+                  <div className="flex items-center gap-3">
                     <button
-                      type="button"
                       onClick={() => handleToggleSave(activeItem)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-rose-200 text-rose-600 text-sm font-semibold hover:bg-rose-50 transition-colors"
+                      className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${isNameSaved(activeItem, savedNames)
+                        ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100"
+                        : "bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 shadow-sm"
+                        }`}
                     >
                       <Heart
-                        className="w-4 h-4"
-                        fill={
-                          isNameSaved(activeItem, savedNames)
-                            ? "currentColor"
-                            : "none"
-                        }
+                        className={`w-4 h-4 ${isNameSaved(activeItem, savedNames) ? "fill-current" : ""}`}
                       />
-                      {isNameSaved(activeItem, savedNames)
-                        ? "Saved"
-                        : "Save"}
+                      {isNameSaved(activeItem, savedNames) ? "Saved to favorites" : "Save to favorites"}
                     </button>
                     <button
-                      type="button"
                       onClick={() => handleCopyName(activeItem.name)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                      className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:text-slate-900 shadow-sm transition-all"
                     >
                       {copiedName === activeItem.name ? (
-                        <CheckCheck className="w-4 h-4 text-emerald-600" />
+                        <CheckCheck className="w-5 h-5 text-emerald-600" />
                       ) : (
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-5 h-5" />
                       )}
-                      {copiedName === activeItem.name ? "Copied" : "Copy"}
                     </button>
-                  </div>
-
-                  <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50">
-                    <button
-                      type="button"
-                      onClick={handleToggleDomains}
-                      className="w-full flex items-center justify-between gap-2 text-sm font-semibold text-slate-700"
-                    >
-                      <span>Domain availability</span>
-                      <ChevronDown
-                        className={`w-4 h-4 text-slate-400 transition-transform ${
-                          isDomainOpen ? "rotate-0" : "-rotate-90"
-                        }`}
-                      />
-                    </button>
-
-                    {isDomainOpen && (
-                      <div className="mt-4 space-y-3">
-                        {activeDomainLoading && (
-                          <div className="space-y-2">
-                            {[...Array(10)].map((_, idx) => (
-                              <div
-                                key={`domain-skeleton-${idx}`}
-                                className="h-10 rounded-lg bg-white border border-slate-100 overflow-hidden relative"
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-200/70 to-slate-100 animate-pulse" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {activeDomainError && (
-                          <div className="text-xs text-rose-600">
-                            {activeDomainError}
-                          </div>
-                        )}
-                        {!activeDomainLoading && activeDomainResults.length > 0 && (
-                          <div className="space-y-2">
-                            {activeDomainResults.map((domain) => (
-                              <div
-                                key={domain.url}
-                                className="flex items-center justify-between gap-2 p-3 rounded-lg bg-white border border-slate-100"
-                              >
-                                <span className="text-sm font-semibold text-slate-700 font-mono tracking-tight break-all">
-                                  {domain.url}
-                                </span>
-                                <span className="shrink-0">
-                                  {domain.status === "Available" && (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-bold uppercase tracking-wide border border-emerald-100">
-                                      <Check className="w-3 h-3 stroke-[3px]" />{" "}
-                                      Available
-                                    </span>
-                                  )}
-                                  {domain.status === "Taken" && (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wide border border-slate-200">
-                                      <X className="w-3 h-3 stroke-[3px]" />{" "}
-                                      Taken
-                                    </span>
-                                  )}
-                                  {domain.status === "Premium" && (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[11px] font-bold uppercase tracking-wide border border-amber-100">
-                                      <DollarSign className="w-3 h-3 stroke-[3px]" />{" "}
-                                      Premium
-                                    </span>
-                                  )}
-                                  {domain.status === "Error" && (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[11px] font-bold uppercase tracking-wide border border-rose-100">
-                                      <AlertCircle className="w-3 h-3 stroke-[3px]" />{" "}
-                                      Error
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {!activeDomainLoading &&
-                          !activeDomainError &&
-                          activeDomainResults.length === 0 && (
-                            <div className="text-xs text-slate-500">
-                              Click to check availability for .com, .my, and .ai.
-                            </div>
-                          )}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-5 space-y-4">
-                    <div className="h-4 w-28 bg-slate-100 rounded-full animate-pulse" />
-                    <div className="space-y-2">
-                      <div className="h-4 w-full bg-slate-100 rounded-full animate-pulse" />
-                      <div className="h-4 w-11/12 bg-slate-100 rounded-full animate-pulse" />
-                      <div className="h-4 w-3/4 bg-slate-100 rounded-full animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="h-10 w-28 bg-slate-100 rounded-full animate-pulse" />
-                    <div className="h-10 w-24 bg-slate-100 rounded-full animate-pulse" />
-                  </div>
-                  <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50">
-                    <div className="flex items-center justify-between">
-                      <div className="h-4 w-40 bg-slate-100 rounded-full animate-pulse" />
-                      <div className="h-4 w-4 bg-slate-100 rounded-full animate-pulse" />
-                    </div>
-                    <div className="mt-4 space-y-2">
-                      {[...Array(3)].map((_, idx) => (
-                        <div
-                          key={`sheet-domain-skeleton-${idx}`}
-                          className="h-10 rounded-lg bg-white border border-slate-100 overflow-hidden relative"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-200/70 to-slate-100 animate-pulse" />
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Sheet Body */}
+              <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6 md:space-y-8">
+                {/* Meaning Section */}
+                <div className="bg-white rounded-3xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-slate-100/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                      Meaning & Context
+                    </h3>
+                  </div>
+                  <p className="text-base md:text-lg text-slate-600 leading-relaxed font-light">
+                    {activeItem.meaning}
+                  </p>
+                </div>
+
+                {/* Domain Availability */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                      Domain Availability
+                    </h3>
+                    {/* Re-check button if needed, or status */}
+                    {activeDomainLoading && <span className="text-xs text-slate-400 animate-pulse">Checking...</span>}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {activeDomainError && (
+                      <div className="p-4 rounded-xl bg-rose-50 text-rose-700 text-sm border border-rose-100">
+                        {activeDomainError}
+                      </div>
+                    )}
+
+                    {!activeDomainLoading && activeDomainResults.length === 0 && !activeDomainError && (
+                      // This shouldn't typically happen as we check on open
+                      <div className="text-sm text-slate-500 italic">No domain data available.</div>
+                    )}
+
+                    {activeDomainLoading ? (
+                      // Loading Skeletons
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-14 rounded-xl bg-white border border-slate-100 overflow-hidden relative">
+                          <div className="absolute inset-0 bg-linear-to-r from-transparent via-slate-50 to-transparent animate-shimmer" style={{ transform: 'translateX(-100%)' }} />
+                        </div>
+                      ))
+                    ) : (
+                      activeDomainResults.map((domain) => (
+                        <a
+                          key={domain.url}
+                          href={`https://${domain.url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 p-4 rounded-xl bg-white border border-slate-100 hover:border-blue-200 hover:shadow-sm transition-all text-left"
+                        >
+                          <span className="font-mono text-slate-700 text-sm break-all">{domain.url}</span>
+
+                          <div className="flex items-center gap-3 w-full xs:w-auto justify-between xs:justify-end">
+                            {domain.status === "Available" && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wide border border-emerald-100/50">
+                                <Check className="w-3 h-3 stroke-[3px]" /> Available
+                              </span>
+                            )}
+                            {domain.status === "Taken" && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wide">
+                                <X className="w-3 h-3 stroke-[3px]" /> Taken
+                              </span>
+                            )}
+                            {domain.status === "Premium" && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-wide border border-amber-100/50">
+                                <DollarSign className="w-3 h-3 stroke-[3px]" /> Premium
+                              </span>
+                            )}
+                            {domain.status === "Error" && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold uppercase tracking-wide">
+                                <AlertCircle className="w-3 h-3 stroke-[3px]" /> Error
+                              </span>
+                            )}
+                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Actions / Footer */}
+                <div className="pt-8 mt-4 border-t border-slate-100">
+                  <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100/50">
+                    <p className="text-sm text-blue-900/80 mb-3">
+                      Like this name? Save it to keep track of your favorites or continue refining your search.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </aside>
       </div>
-    </div>
+    </>
   );
 }

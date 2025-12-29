@@ -20,7 +20,7 @@ export function SavedPage() {
   const countLabel = savedNames.length === 1 ? "saved name" : "saved names";
 
   return (
-    <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-24">
+    <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12 pb-12 sm:pb-24">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between mb-8 sm:mb-10">
         <div className="space-y-3">
           <Link
@@ -37,7 +37,7 @@ export function SavedPage() {
               <Heart className="w-3.5 h-3.5" />
               Saved Library
             </div>
-            <h1 className="text-3xl sm:text-4xl font-display font-bold text-slate-900 mt-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-slate-900 mt-3">
               Your saved names
             </h1>
             <p className="text-slate-600 text-sm sm:text-base mt-2 max-w-2xl">
