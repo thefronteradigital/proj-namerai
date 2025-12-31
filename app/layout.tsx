@@ -63,22 +63,14 @@ export const metadata: Metadata = {
     description:
       "Create unique, multilingual brand names powered by AI. Fast, memorable, and globally ready with automated domain availability checks.",
     siteName: "Namer.ai",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Namer.ai - AI Brand Name Generator",
-        type: "image/png",
-      },
-    ],
+
   },
   twitter: {
     card: "summary_large_image",
     title: "Namer.ai - AI-Powered Brand Name Generator",
     description:
       "Create unique, multilingual brand names powered by AI with automated domain checks.",
-    images: ["/og-image.png"],
+
     creator: process.env.NEXT_PUBLIC_TWITTER_CREATOR || "@frontera",
     site: process.env.NEXT_PUBLIC_TWITTER_HANDLE || "@namer_ai",
   },
@@ -122,7 +114,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full relative flex flex-col bg-linear-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 overflow-x-hidden selection:bg-blue-100 selection:text-blue-900 font-[family-name:var(--font-geist-sans)] text-slate-900`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full relative flex flex-col bg-linear-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 overflow-x-hidden selection:bg-blue-100 selection:text-blue-900 font-(family-name:--font-geist-sans) text-slate-900`}
       >
         <Analytics />
         <ParticlesBackground />
